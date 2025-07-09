@@ -1,32 +1,36 @@
-// pages/api/sendLeadEmail.js
 import nodemailer from 'nodemailer';
 
 export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    const { name, email, message } = req.body;
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method Not Allowed' });
+  }
 
-    try {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: 'robinsxxpaul@gmail.com',      // Your email here
-          pass: 'yayr bfrz famz yrwt'     // App-specific password (not Gmail password)
-        }
-      });
+  const { name, email, message } = req.body;
 
-      await transporter.sendMail({
-        from: 'your_email@gmail.com',
-        to: 'your_email@gmail.com',
-        subject: `New lead from ${name}`,
-        html: `<p><strong>Email:</strong> ${email}</p><p><strong>Message:</strong><br>${message}</p>`
-      });
+  if (!name || !email || !message) {
+    return res.status(400).json({ success: false, message: 'Missing fields' });
+  }
 
-      res.status(200).json({ success: true, message: 'Email sent successfully' });
-    } catch (error) {
-      console.error('Email error:', error);
-      res.status(500).json({ success: false, message: 'Failed to send email' });
-    }
-  } else {
-    res.status(405).json({ success: false, message: 'Method Not Allowed' });
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: process.env.EMAIL_TO,
+    subject: 'New Lead from Chatbot',
+    text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return res.status(200).json({ success: true, message: 'Email sent successfully' });
+  } catch (error) {
+    console.error('Email error:', error); // 🛠️ Log error to Vercel
+    return res.status(500).json({ success: false, message: 'Failed to send email' });
   }
 }
